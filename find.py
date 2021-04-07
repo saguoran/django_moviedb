@@ -8,6 +8,9 @@ def parse_json(data):
     return json.loads(json_util.dumps(data))
 
 def find_actor(actor):
+    client = pymongo.MongoClient('mongodb+srv://terry:1@mongo-cluster.uadhh.gcp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
+    db = client.moviedb
+    collection = db.movie
 	# query = collection.find().limit(1000)
 	# query = collection.find( { "cast": "Carl Washington" }, )
 	query = collection.find( { "cast": actor}, )
@@ -18,7 +21,3 @@ def find_actor(actor):
 		#data = json.dumps(item)
 		print(data)
 		return data
-
-client = pymongo.MongoClient('mongodb+srv://terry:1@mongo-cluster.uadhh.gcp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
-db = client.moviedb
-collection = db.movie
