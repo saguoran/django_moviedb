@@ -32,7 +32,7 @@ def find_actor(actor: str):
     available_cast = set()
     distance_description = ""
     checked_cast = set(actor)
-    checked_movies = set()
+    checked_movie_ids = set()
     # distance_number = len(valid_movies)
     # valid_actors count - valid movies count = 1
     actor_str = actor.strip().lower()
@@ -41,12 +41,13 @@ def find_actor(actor: str):
         return f"{actor} has a Bacon number of {len(in_tree_movies)}.\nf{actor}"
     client = pymongo.MongoClient(r'mongodb+srv://terry:1@mongo-cluster.uadhh.gcp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
     first_layer = client.moviedb.movie.find({"cast": re.compile(fr".*{actor_str}.*", re.IGNORECASE)}, )
-
+    current_layer_movies = []
     # find next movie if actor X with Kevin Bacon, distance = 1
     # guess distance is 1
     for item in first_layer:
         data = parse_json(item)
-        checked_movies.add(data)
+        checked_movie_ids.add(data.id)
+        current_layer_movies.append(data)
         in_tree_movies[0] = data
         print(data.id, data.title, data.cast)
         if any(Kevin_Bacon in cast for cast in data.cast):
@@ -59,15 +60,15 @@ def find_actor(actor: str):
     # guess distance > 1
     # reset movie in tree current distance, search actor relative movies start by 0 up to next number
     in_tree_movies = []
-    in_tree_cast = []
+    in_tree_cast = [actor]
     distance = 0
-    current_layer = copy.copy(checked_movies)
+
     while True:
         next_layer_movies = []
         current_distance = distance
         print("current distance ", current_distance)
         # checked movies as first layer
-        for movie in current_layer:
+        for movie in current_layer_movies:
             try:
                 in_tree_movies[current_distance] = movie
             except IndexError:
@@ -79,15 +80,15 @@ def find_actor(actor: str):
                 except IndexError:
                     in_tree_cast.append(c)
                 checked_cast.add(c)
-                print("checked_movies",len(checked_movies))
-                next_layer = client.moviedb.movie.find({"cast": re.compile(fr".*{c}.*", re.IGNORECASE),"_id": {"$nin": [i.id for i in in_tree_movies]}})
+                print("checked_movies",len(checked_movie_ids))
+                next_layer = client.moviedb.movie.find({"cast": re.compile(fr".*{c}.*", re.IGNORECASE),"_id": {"$nin": list(checked_movie_ids)}})
                 for item in next_layer:
                     data = parse_json(item)
-                    checked_movies.add(data)
                     try:
                         in_tree_movies[current_distance] = data
                     except IndexError:
                         in_tree_movies.append(data)
+                    checked_movie_ids.add(data.id)
                     next_layer_movies.append(data)
                     print(data.id, data.title, data.cast)
                     if any(Kevin_Bacon in cast for cast in data.cast):
@@ -97,6 +98,6 @@ def find_actor(actor: str):
                             distance_description += f"{in_tree_cast[i]:<5} was in {in_tree_movies[i].title:<5} with\n"
                         distance_description += Kevin_Bacon
                         return distance_description
-        current_layer = next_layer_movies
+        current_layer_movies = next_layer_movies
         distance += 1
 
