@@ -41,13 +41,13 @@ def find_actor(actor: str):
         return f"{actor} has a Bacon number of {len(in_tree_movies)}.\nf{actor}"
     client = pymongo.MongoClient(r'mongodb+srv://terry:1@mongo-cluster.uadhh.gcp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
     first_layer = client.moviedb.movie.find({"cast": re.compile(fr".*{actor_str}.*", re.IGNORECASE)}, )
-    current_layer_movies = []
+    movies_layers = [[]]
     # find next movie if actor X with Kevin Bacon, distance = 1
     # guess distance is 1
     for item in first_layer:
         data = parse_json(item)
         checked_movie_ids.add(data.id)
-        current_layer_movies.append(data)
+        movies_layers[0].append(data)
         in_tree_movies[0] = data
         print(data.id, data.title, data.cast)
         if any(Kevin_Bacon in cast for cast in data.cast):
@@ -65,15 +65,14 @@ def find_actor(actor: str):
 
     while True:
         next_layer_movies = []
-        current_distance = distance
+        current_distance = len(movies_layers)
         print("current distance ", current_distance)
         # checked movies as first layer
-        for movie in current_layer_movies:
+        for movie in movies_layers[current_distance-1]:
             try:
-                in_tree_movies[current_distance] = movie
+                in_tree_movies[current_distance-1] = movie
             except IndexError:
                 in_tree_movies.append(movie)
-            current_distance += 1
             for c in [x for x in movie.cast if x not in checked_cast]:
                 try:
                     in_tree_cast[current_distance] = c
@@ -93,7 +92,7 @@ def find_actor(actor: str):
                     print(data.id, data.title, data.cast)
                     if any(Kevin_Bacon in cast for cast in data.cast):
                         distance_description = ""
-                        distance_description += f"{in_tree_cast[0]} has a Bacon number of {current_distance}.\n"
+                        distance_description += f"{in_tree_cast[0]} has a Bacon number of {len(in_tree_movies)}.\n"
                         for i in range(len(in_tree_movies)):
                             distance_description += f"{in_tree_cast[i]:<5} was in {in_tree_movies[i].title:<5} with\n"
                         distance_description += Kevin_Bacon
