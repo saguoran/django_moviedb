@@ -63,40 +63,39 @@ def find_actor(actor: str):
     in_tree_cast = [actor]
     distance = 0
 
-    while True:
-        next_layer_movies = []
-        current_distance = len(movies_layers)
-        print("current distance ", current_distance)
-        # checked movies as first layer
-        for movie in movies_layers[current_distance-1]:
+    # while True:
+    next_layer_movies = []
+    current_distance = len(movies_layers)
+    print("current distance ", current_distance)
+    # checked movies as first layer
+    for movie in movies_layers[current_distance-1]:
+        try:
+            in_tree_movies[current_distance-1] = movie
+        except IndexError:
+            in_tree_movies.append(movie)
+        for c in [x for x in movie.cast if x not in checked_cast]:
             try:
-                in_tree_movies[current_distance-1] = movie
+                in_tree_cast[current_distance] = c
             except IndexError:
-                in_tree_movies.append(movie)
-            for c in [x for x in movie.cast if x not in checked_cast]:
+                in_tree_cast.append(c)
+            checked_cast.add(c)
+            print("checked_movies",len(checked_movie_ids))
+            next_layer = client.moviedb.movie.find({"cast": re.compile(fr".*{c}.*", re.IGNORECASE),"_id": {"$nin": list(checked_movie_ids)}})
+            for item in next_layer:
+                data = parse_json(item)
                 try:
-                    in_tree_cast[current_distance] = c
+                    in_tree_movies[current_distance] = data
                 except IndexError:
-                    in_tree_cast.append(c)
-                checked_cast.add(c)
-                print("checked_movies",len(checked_movie_ids))
-                next_layer = client.moviedb.movie.find({"cast": re.compile(fr".*{c}.*", re.IGNORECASE),"_id": {"$nin": list(checked_movie_ids)}})
-                for item in next_layer:
-                    data = parse_json(item)
-                    try:
-                        in_tree_movies[current_distance] = data
-                    except IndexError:
-                        in_tree_movies.append(data)
-                    checked_movie_ids.add(data.id)
-                    next_layer_movies.append(data)
-                    print(data.id, data.title, data.cast)
-                    if any(Kevin_Bacon in cast for cast in data.cast):
-                        distance_description = ""
-                        distance_description += f"{in_tree_cast[0]} has a Bacon number of {len(in_tree_movies)}.\n"
-                        for i in range(len(in_tree_movies)):
-                            distance_description += f"{in_tree_cast[i]:<5} was in {in_tree_movies[i].title:<5} with\n"
-                        distance_description += Kevin_Bacon
-                        return distance_description
-        current_layer_movies = next_layer_movies
-        distance += 1
-
+                    in_tree_movies.append(data)
+                checked_movie_ids.add(data.id)
+                next_layer_movies.append(data)
+                print(data.id, data.title, data.cast)
+                if any(Kevin_Bacon in cast for cast in data.cast):
+                    distance_description = ""
+                    distance_description += f"{in_tree_cast[0]} has a Bacon number of {len(in_tree_movies)}.\n"
+                    for i in range(len(in_tree_movies)):
+                        distance_description += f"{in_tree_cast[i]:<5} was in {in_tree_movies[i].title:<5} with\n"
+                    distance_description += Kevin_Bacon
+                    return distance_description
+        # current_layer_movies = next_layer_movies
+    return f"{in_tree_cast[0]} has a Bacon number is greater than 2.\n"
